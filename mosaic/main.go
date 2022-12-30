@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"mosaic/sync"
+	"mosaic/conc"
+	"mosaic/noconc"
 	"mosaic/tilesdb"
 	"net/http"
 )
@@ -11,8 +12,10 @@ func main() {
 	mux := http.NewServeMux()
 	files := http.FileServer(http.Dir("public"))
 	mux.Handle("/static/", http.StripPrefix("/static/", files))
-	mux.HandleFunc("/", sync.Upload)
-	mux.HandleFunc("/mosaic", sync.Mosaic)
+	mux.HandleFunc("/", noconc.Upload)
+	//这里有两个版本的Mosaic，因为不想改html文件，所以就只好改这里了
+	//mux.HandleFunc("/mosaic", noconc.Mosaic)
+	mux.HandleFunc("/mosaic", conc.Mosaic)
 	server := &http.Server{
 		Addr:    "127.0.0.1:8080",
 		Handler: mux,

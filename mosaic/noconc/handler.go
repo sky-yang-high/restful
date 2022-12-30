@@ -1,4 +1,5 @@
-package sync
+// noconc 意思是no concurrency，即没有并发
+package noconc
 
 import (
 	"bytes"

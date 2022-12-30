@@ -8,7 +8,9 @@ import (
 	"os"
 )
 
-var TILESDB map[string][3]float64
+type DB map[string][3]float64
+
+var TILESDB DB
 
 // 获取整张图片的平均rgb值
 func AverageColor(img image.Image) [3]float64 {
@@ -42,10 +44,10 @@ func Resize(img image.Image, newWidth int) image.NRGBA {
 }
 
 // 读取并构建图片数据库
-func TilesDB() map[string][3]float64 {
+func TilesDB() DB {
 	var dirname string = "tiles"
 	fmt.Println("开始构建嵌入图片数据库...")
-	db := make(map[string][3]float64)
+	db := make(DB)
 	files, _ := os.ReadDir(dirname)
 	for _, f := range files {
 		name := "tiles/" + f.Name()
@@ -67,7 +69,7 @@ func TilesDB() map[string][3]float64 {
 }
 
 // 利用rgb值在素材库中查找最接近的tile
-func Nearest(target [3]float64, db *map[string][3]float64) string {
+func Nearest(target [3]float64, db *DB) string {
 	var filename string
 	smallest := 10000000.0
 	for k, v := range *db {
@@ -90,8 +92,8 @@ func sq(n float64) float64 {
 }
 
 // 复制TILESDB，因为读取文件过程很耗时
-func CloneTilesDB() map[string][3]float64 {
-	db := make(map[string][3]float64)
+func CloneTilesDB() DB {
+	db := make(DB)
 	for k, v := range TILESDB {
 		db[k] = v
 	}
