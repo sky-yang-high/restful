@@ -2,13 +2,12 @@ package taskserver
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"restful/taskstore"
 	"strconv"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type TaskServer struct {
@@ -32,56 +31,63 @@ func renderJSON(w http.ResponseWriter, data interface{}) {
 	w.Write(jsdata)
 }
 
-func (ts *TaskServer) CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handling create task request at%s\n", r.URL.Path)
+// func (ts *TaskServer) CreateTaskHandler(c *gin.Context) {
+// 	//gin will log the request automatically
+// 	//log.Printf("handling create task request at%s\n", c.Request.URL.Path)
 
-	r.ParseForm()
-	text := r.FormValue("text")
-	tags := r.Form["tags"]    //tags is a slice of strings
-	due := r.FormValue("due") //due is a int number
-	t, _ := strconv.Atoi(due)
+// 	// text := c.PostForm("text")
+// 	// tags := c.PostFormArray("tags") //tags is a slice of strings
+// 	// due := c.PostForm("due")        //due is a int number
+// 	// t, _ := strconv.Atoi(due)
+// 	// i don't know why the above code doesn't work, so i use the following code instead:
+// 	text := c.Request.FormValue("text")
+// 	tags := c.Request.Form["tags"]
+// 	due := c.Request.FormValue("due")
+// 	t, _ := strconv.Atoi(due)
 
-	id := ts.store.CreateTask(text, tags, time.Now().Add(time.Duration(t)*time.Minute))
+//		id := ts.store.CreateTask(text, tags, time.Now().Add(time.Duration(t)*time.Minute))
+//		c.JSON(http.StatusCreated, gin.H{"id": id})
+//	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(strconv.Itoa(id)))
-}
-
-func (ts *TaskServer) GetTaskHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handling get task request at%s\n", r.URL.Path)
-
-	//this is the official way to get the id parameter, but i use the gorilla mux library
-	// sid := r.PathValue("id")
-	// if sid == "" {
-	// 	http.Error(w, "id parameter is missing", http.StatusBadRequest)
-	// 	return
-	// }
-
-	//id, err := strconv.Atoi(sid)
-	//another way to get the id parameter
-	id, err := strconv.Atoi(mux.Vars(r)["id"])
-	if err != nil {
-		http.Error(w, "invalid id parameter", http.StatusBadRequest)
+// another way to implement the CreateTaskHandler function:
+func (ts *TaskServer) CreateTaskHandler(c *gin.Context) {
+	type RequestTask struct {
+		Text string   `json:"text"`
+		Tags []string `json:"tags"`
+		Due  int      `json:"due"`
+	}
+	var rt RequestTask
+	//in this way, the pramer should be set in request.body with json format, instead of request.url
+	if err := c.ShouldBindJSON(&rt); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	id := ts.store.CreateTask(rt.Text, rt.Tags, time.Now().Add(time.Duration(rt.Due)*time.Minute))
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
 
+func (ts *TaskServer) GetTaskHandler(c *gin.Context) {
+	sid := c.Param("id")
+	id, err := strconv.Atoi(sid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid task id"})
+		return
+	}
 	task, err := ts.store.GetTask(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
-	renderJSON(w, task)
+	//gin has built-in JSON rendering
+	c.JSON(http.StatusOK, task)
 }
 
-func (ts *TaskServer) GetAllTasksHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handling get all tasks request at%s\n", r.URL.Path)
-
+func (ts *TaskServer) GetAllTasksHandler(c *gin.Context) {
 	tasks := ts.store.GetAllTasks()
 	if tasks == nil {
-		http.Error(w, "no tasks found", http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "no tasks found"})
 		return
 	}
-
-	renderJSON(w, tasks)
+	c.JSON(http.StatusOK, tasks)
 }
