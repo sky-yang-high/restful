@@ -7,6 +7,8 @@ import (
 	"restful/taskstore"
 	"strconv"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 type TaskServer struct {
@@ -33,15 +35,13 @@ func renderJSON(w http.ResponseWriter, data interface{}) {
 func (ts *TaskServer) CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handling create task request at%s\n", r.URL.Path)
 
-	que := r.URL.Query()
+	r.ParseForm()
+	text := r.FormValue("text")
+	tags := r.Form["tags"]    //tags is a slice of strings
+	due := r.FormValue("due") //due is a int number
+	t, _ := strconv.Atoi(due)
 
-	Text := que.Get("text")
-	//TODO: maybe the time should be in the query string as well
-	t, _ := strconv.Atoi(que.Get("due"))
-	Due := time.Now().Add(time.Duration(t) * time.Minute)
-	Tags := que["tags"]
-
-	id := ts.store.CreateTask(Text, Tags, Due)
+	id := ts.store.CreateTask(text, tags, time.Now().Add(time.Duration(t)*time.Minute))
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(strconv.Itoa(id)))
@@ -50,13 +50,16 @@ func (ts *TaskServer) CreateTaskHandler(w http.ResponseWriter, r *http.Request) 
 func (ts *TaskServer) GetTaskHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handling get task request at%s\n", r.URL.Path)
 
-	sid := r.URL.Query().Get("id")
-	if sid == "" {
-		http.Error(w, "id parameter is missing", http.StatusBadRequest)
-		return
-	}
+	//this is the official way to get the id parameter, but i use the gorilla mux library
+	// sid := r.PathValue("id")
+	// if sid == "" {
+	// 	http.Error(w, "id parameter is missing", http.StatusBadRequest)
+	// 	return
+	// }
 
-	id, err := strconv.Atoi(sid)
+	//id, err := strconv.Atoi(sid)
+	//another way to get the id parameter
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		http.Error(w, "invalid id parameter", http.StatusBadRequest)
 		return
@@ -65,6 +68,7 @@ func (ts *TaskServer) GetTaskHandler(w http.ResponseWriter, r *http.Request) {
 	task, err := ts.store.GetTask(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	renderJSON(w, task)

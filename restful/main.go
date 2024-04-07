@@ -2,21 +2,20 @@ package main
 
 import (
 	"net/http"
-	taskserver "restful/taskServer"
+	taskserver "restful/taskserver"
+
+	mux "github.com/gorilla/mux"
 )
 
 func main() {
-	mux := http.NewServeMux()
+	router := mux.NewRouter()
 	server := taskserver.NewTaskServer()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello, world!"))
-	})
 
-	mux.HandleFunc("GET /task/create", server.CreateTaskHandler)
-	mux.HandleFunc("/task/all", server.GetAllTasksHandler)
-	mux.HandleFunc("/task/get", server.GetTaskHandler)
-	//mux.HandleFunc("/task/tags",server.GetTaskByTagHandler())
-	//mux.HandleFunc("PUT /task/{id}", server.UpdateTaskHandler())
-	//mux.HandleFunc("DELETE /task/{id}", server.DeleteTaskHandler())
-	http.ListenAndServe(":8080", mux)
+	router.HandleFunc("/task/create", server.CreateTaskHandler).Methods("POST")
+	router.HandleFunc("/task/all", server.GetAllTasksHandler).Methods("GET")
+	router.HandleFunc("/task/get/{id:[0-9]+}", server.GetTaskHandler).Methods("GET")
+	//router.HandleFunc("/task/tags/{tag}", server.GetTaskByTagHandler).Methods("GET")
+	//router.HandleFunc("PUT /task/{id}", server.UpdateTaskHandler).Methods("PUT")
+	//router.HandleFunc("DELETE /task/{id}", server.DeleteTaskHandler).Methods("DELETE")
+	http.ListenAndServe(":8080", router)
 }
