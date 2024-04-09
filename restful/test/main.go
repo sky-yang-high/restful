@@ -2,19 +2,30 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 )
 
+type MyMiddleWare struct {
+	hanler http.Handler
+}
+
+func (mw *MyMiddleWare) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	start := time.Now()
+	mw.hanler.ServeHTTP(w, req)
+	log.Println("time used: ", time.Since(start))
+}
+
+type PoliteServer struct {
+}
+
+func (ms *PoliteServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, "Welcome! Thanks for visiting!\n")
+}
+
 func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/task/{id}/status/", func(w http.ResponseWriter, r *http.Request) {
-		id := r.PathValue("id")
-		fmt.Fprintf(w, "handling task status with id=%v\n", id)
-	})
-	mux.HandleFunc("/task/0/{action}/", func(w http.ResponseWriter, r *http.Request) {
-		action := r.PathValue("action")
-		fmt.Fprintf(w, "handling task 0 with action=%v\n", action)
-	})
-	fmt.Println("Starting server on port 8090...")
-	http.ListenAndServe("localhost:8090", mux)
+	ps := &PoliteServer{}
+	mw := &MyMiddleWare{ps}
+	log.Fatal(http.ListenAndServe(":8090", mw))
 }

@@ -47,6 +47,12 @@ golang更新到 1.22 之后，官方的 net/http 的 pattern 就支持为如下�
 
 因此，使用Swagger/OpenAPI来完善我们的接口设计。
 
+## 5. MiddleWare-中间件
+
+写的很好的一个文章：[Life of an HTTP request in a Go server - Eli Bendersky's website (thegreenplace.net)](https://eli.thegreenplace.net/2021/life-of-an-http-request-in-a-go-server/)
+
+在介绍中间件之前，我们再次回顾一下关于net/http中极为经典的一个实现：Handler接口。
+
 
 
 
