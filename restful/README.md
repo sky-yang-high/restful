@@ -8,6 +8,17 @@
 
 一个简单的用map实现的task数据库，以及一些提供的接口，例如创建task,根据id,tags,due获取和删除task等。以及通过使用sync.Mutex来保证并发安全。
 
+提供的接口如下所示：
+
+```
+POST   /task/              :  create a task, returns ID
+GET    /task/<taskid>      :  returns a single task by ID
+GET    /task/              :  returns all tasks
+DELETE /task/<taskid>      :  delete a task by ID
+GET    /tag/<tagname>      :  returns list of tasks with this tag
+GET    /due/<yy>/<mm>/<dd> :  returns list of tasks due by this date
+```
+
 后续可以考虑更新为用mysql,redis等来实现。
 
 ## 2. taskServer
@@ -32,7 +43,9 @@ golang更新到 1.22 之后，官方的 net/http 的 pattern 就支持为如下�
 
 ## 4. 使用Swagger
 
+我们最开始规范的定义的store的接口并不符合rest规范，也没有合适的doc来描述这些接口。
 
+因此，使用Swagger/OpenAPI来完善我们的接口设计。
 
 
 

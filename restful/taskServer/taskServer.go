@@ -50,6 +50,15 @@ func renderJSON(w http.ResponseWriter, data interface{}) {
 //	}
 
 // another way to implement the CreateTaskHandler function:
+
+//	@Summary	CreateTask creates a new task in ts and returns its ID.
+//	@Produce	json
+//	@Param		text	formData	string	true	"The text of the task"
+//	@Param		tags	formData	array	true	"The tags of the task"
+//	@Param		due		formData	int		true	"The due time of the task in minutes"
+//	@Success	201		{object}	int		"The ID of the created task"
+//	@Failure	400		{object}	string	"Invalid input"
+//	@Router		/task/create [post]
 func (ts *TaskServer) CreateTaskHandler(c *gin.Context) {
 	type RequestTask struct {
 		Text string   `json:"text"`
@@ -66,6 +75,12 @@ func (ts *TaskServer) CreateTaskHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
+//	@Summary	GetTask returns the task with the given ID.
+//	@Produce	json
+//	@Param		id	path		int				true	"The ID of the task to retrieve"
+//	@Success	200	{object}	taskstore.Task	"The task with the given ID"
+//	@Failure	400	{object}	string			"Invalid task ID"
+//	@Router		/task/{id} [get]
 func (ts *TaskServer) GetTaskHandler(c *gin.Context) {
 	sid := c.Param("id")
 	id, err := strconv.Atoi(sid)
@@ -83,6 +98,11 @@ func (ts *TaskServer) GetTaskHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, task)
 }
 
+//	@Summary	GetAllTasks returns all tasks in ts.
+//	@Produce	json
+//	@Success	200	{array}		taskstore.Task
+//	@Failure	404	{object}	string	"No tasks found"
+//	@Router		/task/all [get]
 func (ts *TaskServer) GetAllTasksHandler(c *gin.Context) {
 	tasks := ts.store.GetAllTasks()
 	if tasks == nil {
