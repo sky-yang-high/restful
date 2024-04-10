@@ -2,30 +2,31 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-	"time"
 )
 
-// 简化版的中间件
-func loggingMiddleWare(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		next.ServeHTTP(w, r)
-		log.Println("time used:", time.Since(start))
-	})
+func hello(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, "hello\n")
 }
 
-type PoliteServer struct {
-}
-
-func (ms *PoliteServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "Welcome! Thanks for visiting!\n")
+func doPanic(w http.ResponseWriter, req *http.Request) {
+	defer func() {
+		if err := recover(); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, "panic")
+		}
+	}()
+	//panic will close the connection and shutdown the goroutine,
+	//which results in the client didn't receive any response.
+	//(but luckily, the server isn't impacted, since the routine is seperated from the main routine)
+	//so here we just log the panic but don't do an panic itself.
+	//log.Println("panic opps")
+	panic("oops")
 }
 
 func main() {
-	ps := &PoliteServer{}
-	//在这里，我们并没有使用到任何路由，但是这的确跑起来了
-	//如果不理解这部分，可以再深入了解了解go的http包
-	log.Fatal(http.ListenAndServe(":8090", loggingMiddleWare(ps)))
+	http.HandleFunc("/hello", hello)
+	http.HandleFunc("/panic", doPanic)
+
+	http.ListenAndServe(":8090", nil)
 }

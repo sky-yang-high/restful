@@ -55,5 +55,33 @@ golang更新到 1.22 之后，官方的 net/http 的 pattern 就支持为如下�
 
 
 
+一个好用的middleware package，[justinas/alice: Painless middleware chaining for Go (github.com)](https://github.com/justinas/alice)。
+
+这个包把臃肿的中间件嵌套，例如(mw1(mw2(mw3...mwn(app))))，转变为这样的形式：(其实就是把这些Handler用链串联，然后递归调用即可)
+
+```
+alice.New(Middleware1, Middleware2, Middleware3).Then(App)
+```
+
+另外，使用gin框架时，可以从这里[Gin-Gonic (github.com)](https://github.com/gin-contrib/)找到各种中间件，不需要自己手搓了。
+
+关于中间件执行的顺序，在gin中，这取决于注册和调用ctx.Next的时机。参考[go原理系列| 理解gin中间件的运行](https://juejin.cn/post/6874493914930380808)
+
+在gin中，中间件通过r.Use注册，注册，实际上就是把中间件加入到HandlerChain中，每次调用ctx.Next时，就会从中取下一个中间件执行(即递归调用)。也就是说，如果某个中间件先注册，但是没有调用ctx.Next，那么调用链就会在这里中断，后面的中间件是不会执行的。
+
+查看源码，中间件的注册(即router.Use)最终是这样的：
+
+![image-20240410155121967](./img/image-20240410155121967.png)
+
+而router.Get,Post等函数最终是这样的：
+
+![image-20240410155222968](./img/image-20240410155222968.png)
+
+可以看到其实这部分的功能是一样的，都是往Handlers的末尾添加一个新的Handler。(但是因为combineHandlers是拷贝Chain的副本，因此，只有在这之前注册的中间件会被加入对应的路由中，所以中间件的注册一定要在路由之前。)
+
+因此，使用Use和Get的先后也就影响了这些Handler在HandlderChain中的顺序，在调用ctx.Next时也会受到影响。至于中间件的逻辑和主程序的先后，在调用Next之前即为先执行，在调用Next之后即为后执行。
+
+另外，中间件虽然有好处，但是不宜过多，过多的中间件延长了路由处理的流程，使得代码的读取和调试更加复杂。尽量使用少的中间件。
+
 
 
