@@ -101,7 +101,78 @@ alice.New(Middleware1, Middleware2, Middleware3).Then(App)
 
 ## 6. 身份验证
 
+即在之前的基础上，对于获得的请求进行身份验证，如何做？
 
+使用HTTPS，或者说，把http传输的数据使用TLS(Transport Layer Security)进行加密。
+
+### TLS加密
+
+参考这些：
+
+- [RSA - 理论与实现 ](https://eli.thegreenplace.net/2019/rsa-theory-and-implementation/)
+- [Diffie-Hellman 密钥交换](https://eli.thegreenplace.net/2019/diffie-hellman-key-exchange/)
+- [[Go HTTPS servers with TLS](https://eli.thegreenplace.net/2021/go-https-servers-with-tls/)
+
+#### RSA非对称加密算法
+
+我们使用到以下数据进行加密和解密：
+
+- M: 要加密的数据的二进制数
+- p,q: 两个很大的质数(非常大，至少600位10进制数)
+- n: n=p\*q
+- e: 一个相对小的奇素数, 可以直接使用65537
+- φ(n): 即[欧拉的 totient 函数](https://en.wikipedia.org/wiki/Euler's_totient_function)，在这里，由于p,q都是大质数，φ(n)=(p-1)\*(q-1)
+- d: e在模φ(n)下的乘法逆元，存在且唯一
+- C: 加密后的密文
+- 公钥即为[n,e]，私钥即为[n,d]
+
+我们采用的加密过程非常简单，但是有效，即：
+
+- C = Encode(M) = M^e^ % n 
+- M = Decode(C) = C^d^ % n
+
+证明如下：
+
+1. M = Decode(c) = Decode(Encode(M)) = M^ed^ % n
+2. ed ≡ 1 (mod φ(n))，即ed = 1+kφ(n) = 1+k(p-1)(q-1)
+3. 由费马小定理，当M,p互质时，有M^p-1^ ≡ 1(mod p)
+4. 因此，M^ed^ %n = M(M^p-1^)(M^q-1^) % (pq) = M(另外，如果恰好当M,p不互质(虽然几乎不可能)那么仍有M^q-1^ % q = 1，也还是有M^ed^ % q = M，依然成立)
+5. 综上，我们证明了使用这样的方式来加密和解密是保证数据不损坏的。
+6. 安全性，破译时，我们只能得到n,e(即公钥)和C，由于对n的大整数分解是非常困难的，几乎不可能正确的拆分出p与q，也就无法得到d进行解密。
+
+在网络上，公钥是公开的，私钥则只有目标才能得到。传输时，使用公钥加密，对方收到后使用私钥解密即可。
+
+#### 密钥交换
+
+参考[密钥协商（密钥交换）机制的讲解](https://blog.csdn.net/CHYabc123456hh/article/details/108788580)
+
+- RSA
+  - 客户端连上服务端
+  - 服务端发送 CA 证书给客户端
+  - 客户端验证该证书的可靠性
+  - 客户端从 CA 证书中取出公钥
+  - 客户端生成一个随机密钥 k，并用这个公钥加密得到 k’
+  - 客户端把 k’ 发送给服务端
+  - 服务端收到 k’ 后用自己的私钥解密得到 k，此时双方都得到了密钥 k，协商完成。
+  - 之后服务器和客户端都只需要使用k进行加密和解密即可
+
+#### TLS加密流程
+
+- 就是上面的RSA密钥交换过程，在建立TCP连接的3次握手后就会进行密钥交换
+- 证书被称为X.509证书，目的是确保这些公钥和签名是可靠的，而不是随意的
+
+在go中，使用tls加密通信和原本的http差异并不大，只需要额外配置证书，配置Server的TLS字段，以及使用ListenAndServeTLS即可，很简单。
+
+通过本地随机生成的自签名证书可能不会被浏览器相信(这也是当然的)，还有几种简便的方法生成证书：
+
+```
+go run /usr/local/go/src/crypto/tls/generate_cert.go -help
+//这种方式和自己编写的方式生成的证书差不多，也无法让浏览器相信
+```
+
+- 另一种方式则是使用包[A simple zero-config tool to make locally trusted development certificates](https://github.com/FiloSottile/mkcert)，通过这个包生成的证书是可以被浏览器相信的。
+
+除了服务器提供证书之外，服务器还可以要求客户端也提供证书，这称之为双向TLS(mTLS)。实现方式也不难，客户端持有证书之后，为Client的证书字段配置好，在发送请求时即可携带该证书。服务器也在Server的证书字段配置信任的客户端证书即可，其余检查的事情，服务器会做好的。
 
 
 
