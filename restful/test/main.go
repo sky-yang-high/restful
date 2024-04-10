@@ -24,9 +24,16 @@ func doPanic(w http.ResponseWriter, req *http.Request) {
 	panic("oops")
 }
 
-func main() {
-	http.HandleFunc("/hello", hello)
-	http.HandleFunc("/panic", doPanic)
+type HelloSay struct{}
 
-	http.ListenAndServe(":8090", nil)
+func (hs *HelloSay) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, "hello say\n")
+}
+
+func main() {
+	// http.HandleFunc("/hello", hello)
+	// http.HandleFunc("/panic", doPanic)
+	hs := &HelloSay{}
+
+	http.ListenAndServe(":8090", hs)
 }

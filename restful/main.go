@@ -11,8 +11,8 @@ func main() {
 	router := gin.New()
 	server := taskserver.NewTaskServer()
 
-	//since the method function din't call the c.Next, the middleware should be registered before that
-	//more deeply, if a middleware is registered after the method function, it will not be executed
+	//since the method function didn't call the c.Next, the middleware should be registered before that.
+	//more deeply, if a middleware is registered after the method function, it will not be executed.
 	//that is because this middleware is not in the chain of the method function
 	//(see the code like router.GET, and you will konw why)
 	router.Use(middleware.Logger())
@@ -27,5 +27,7 @@ func main() {
 	router.GET("/panic", func(ctx *gin.Context) {
 		panic("This is a panic")
 	})
+
+	//router.RunTLS()
 	router.Run(":8080")
 }
