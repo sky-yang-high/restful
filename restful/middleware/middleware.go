@@ -27,3 +27,25 @@ func Recovery() gin.HandlerFunc {
 		ctx.Next()
 	}
 }
+
+func Authrization() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		user, psw, ok := ctx.Request.BasicAuth()
+		if !ok {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			ctx.Abort()
+			return
+		}
+		if !CheckUser(user, psw) {
+			ctx.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+			ctx.Abort()
+			return
+		}
+		ctx.Next()
+	}
+}
+
+func CheckUser(user, psw string) bool {
+	// TODO: check user and password
+	return true
+}

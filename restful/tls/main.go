@@ -8,6 +8,8 @@ import (
 )
 
 func main() {
+	//CreateCert()
+
 	addr := flag.String("addr", ":8099", "server address")
 	certFile := flag.String("certfile", "./cert.pem", "certificate PEM file")
 	privateKey := flag.String("privatekey", "./key.pem", "private key PEM file")
