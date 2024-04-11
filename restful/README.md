@@ -163,6 +163,8 @@ alice.New(Middleware1, Middleware2, Middleware3).Then(App)
 
 在go中，使用tls加密通信和原本的http差异并不大，只需要额外配置证书，配置Server的TLS字段，以及使用ListenAndServeTLS即可，很简单。
 
+另外，客户端也要把服务器所提供的证书加入自己的TLSClientConfig中，以便在建立TCP连接时放行(即视为该证书有效)。
+
 通过本地随机生成的自签名证书可能不会被浏览器相信(这也是当然的)，还有几种简便的方法生成证书：
 
 ```
@@ -174,11 +176,25 @@ go run /usr/local/go/src/crypto/tls/generate_cert.go -help
 
 除了服务器提供证书之外，服务器还可以要求客户端也提供证书，这称之为双向TLS(mTLS)。实现方式也不难，客户端持有证书之后，为Client的证书字段配置好，在发送请求时即可携带该证书。服务器也在Server的证书字段配置信任的客户端证书即可，其余检查的事情，服务器会做好的。
 
+## GraphQL
+
+参见这里 [GraphQL](https://spec.graphql.org/June2018/) 来了解更多信息。
+
+GraphQL也是一种设计风格，和REST不同的设计风格。
+
+在REST中，例如，在本样例中，如果Task结构体还携带有很多其他数据，而这些数据是客户端使用getalltask不希望收到的，即客户端收到的垃圾信息过多，在网络上传输这些信息的开销也更大，这称之为over-fetching(过度抓取)。
+
+为改进这些问题，我们或许可以考虑拆分出更多的api，例如getalltaskid,getwholetaskbyid,getparttaskbyid，等来尽量满足客户端的需求而减少网络流量。但是这样改进之后，需要获取到全部的详细的task信息又变得更麻烦，我需要先获取全部的taskid,再遍历taskid获取每个task。这另一方面又加大了服务器的负载(原本的一个请求变成了很多个请求)，而客户端单次收到的信息又可能不足。这称之为under-fetching(抓取不足)。
+
+GraphQL就是解决该问题所提出的一种设计风格。它在服务器方面，使用GraphQL来实现，而客户端把所需要的信息发给服务器，(在这个例子中)服务器在获取到所有的task后，会按照sql那样，根据客户端的需求筛选出合适的task再返回。实现一个合适的fetching。
+
+听上去很美好，但是实际上实现起来较为麻烦和复杂，而不像REST那样和HTTP配合得那么好，同时保持代码的简洁。
 
 
 
+至此，这个项目就到此结束了。总的来说还是很有收获的，包括起初的接口设计，新的go路由(gorilla,gin,go1.22更新的mux)，Swagger(接口详细显示)，HTTPS原理和应用，以及GraphQL。之后，可以运用这里的经验重新写一个别的server。
 
-
+另外，这个专题也可以一看：[Embedding in Go: Part 1 - structs in structs ](https://eli.thegreenplace.net/2020/embedding-in-go-part-1-structs-in-structs)。
 
 
 
